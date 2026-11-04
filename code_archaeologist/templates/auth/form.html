@@ -1,1 +1,11 @@
-{% extends 'base.html' %}{% block body %}<main class="auth-layout"><a class="brand" href="/">⌘ Code Archaeologist</a><section class="auth-card">{% with messages = get_flashed_messages(with_categories=true) %}{% for category, message in messages %}<p class="flash {{ category }}">{{ message }}</p>{% endfor %}{% endwith %}{% block form_content %}{% endblock %}</section></main>{% endblock %}
+{% extends 'base.html' %}
+{% block body_class %}page-public page-auth{% endblock %}
+{% block body %}
+{% include 'dashboard/_flashes.html' %}
+<main id="main" class="auth-layout">
+  <a class="brand auth-brand" href="/"><span class="brand-mark" aria-hidden="true"></span><span>Code<br>Archaeologist</span></a>
+  <section class="auth-card">
+    {% block form_content %}{% endblock %}
+  </section>
+</main>
+{% endblock %}

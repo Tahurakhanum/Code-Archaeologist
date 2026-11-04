@@ -2,85 +2,85 @@
 {% block title %}Dashboard · Code Archaeologist{% endblock %}
 {% block body %}
 <div class="app-shell">
-  <aside>
-    <a class="brand" href="/">⌘ Archaeologist</a>
-    <nav>
-      <a class="active" href="{{ url_for('dashboard.index') }}">Overview</a>
-      <a href="{{ url_for('dashboard.new_analysis') }}">New analysis</a>
-    </nav>
-    <form method="post" action="{{ url_for('auth.logout') }}">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <button class="plain-button">Log out</button>
-    </form>
-  </aside>
+  {% with nav_active='overview' %}{% include 'dashboard/_sidebar.html' %}{% endwith %}
 
-  <main class="dashboard">
-    <header>
-      <div><p class="eyebrow">YOUR WORKSPACE</p><h1>Welcome back, {{ session.user_name }}.</h1></div>
-      <a class="button" href="{{ url_for('dashboard.new_analysis') }}">Analyze repository <span>→</span></a>
+  <main id="main" class="dashboard">
+    <header class="page-header">
+      <div>
+        <p class="eyebrow">YOUR WORKSPACE</p>
+        <h1><span class="line"><span class="line-inner">Welcome back, {{ session.user_name }}.</span></span></h1>
+      </div>
+      <a class="button" href="{{ url_for('dashboard.new_analysis') }}">Analyze repository <span class="arrow">→</span></a>
     </header>
     {% include 'dashboard/_flashes.html' %}
 
-    <section class="metrics">
-      <article><span>Repositories analyzed</span><strong>{{ stats.repositories }}</strong></article>
-      <article><span>Analysis reports</span><strong>{{ stats.complete }}</strong></article>
-      <article><span>Running / failed</span><strong>{{ stats.running }} / {{ stats.failed }}</strong></article>
+    <p class="eyebrow sec-code">OVERVIEW</p>
+    <section class="metrics" aria-label="Overview">
+      <article class="card metric" data-reveal><span>Repositories analyzed</span><strong data-count>{{ stats.repositories }}</strong></article>
+      <article class="card metric" data-reveal><span>Analysis reports</span><strong data-count>{{ stats.complete }}</strong></article>
+      <article class="card metric" data-reveal><span>Running / failed</span><strong data-count>{{ stats.running }} / {{ stats.failed }}</strong></article>
     </section>
 
-    <section class="recent">
-      <div><p class="eyebrow">SAVED ANALYSES</p><h2>Previous analyses</h2></div>
+    <section class="card section-gap" data-reveal>
+      <p class="eyebrow sec-code">SAVED ANALYSES</p>
+      <h2>Previous analyses</h2>
+
       {% if stats.total %}
-      <form class="filter-bar" method="get" role="search">
-        <label>Search by name<input type="search" name="q" value="{{ filters.q }}" placeholder="Repository name" maxlength="100"></label>
-        <label>Source
+      <form class="toolbar" method="get" role="search">
+        <label class="toolbar-search"><span class="form-label">Search by name</span><input type="search" name="q" value="{{ filters.q }}" placeholder="Repository name" maxlength="100"></label>
+        <label><span class="form-label">Source</span>
           <select name="source"><option value="">All sources</option>
             {% for key, label in sources.items() %}<option value="{{ key }}" {% if filters.source == key %}selected{% endif %}>{{ label }}</option>{% endfor %}
           </select>
         </label>
-        <label>Status
+        <label><span class="form-label">Status</span>
           <select name="status"><option value="">All statuses</option>
             {% for key, label in statuses.items() %}<option value="{{ key }}" {% if filters.status == key %}selected{% endif %}>{{ label }}</option>{% endfor %}
           </select>
         </label>
-        <label>Sort
+        <label><span class="form-label">Sort</span>
           <select name="sort">
             <option value="newest" {% if filters.sort == 'newest' %}selected{% endif %}>Recently updated</option>
             <option value="oldest" {% if filters.sort == 'oldest' %}selected{% endif %}>Oldest first</option>
             <option value="name" {% if filters.sort == 'name' %}selected{% endif %}>Name (A–Z)</option>
           </select>
         </label>
-        <button class="button" type="submit">Apply</button>
-        {% if filtering %}<a class="table-link" href="{{ url_for('dashboard.index') }}">Clear filters</a>{% endif %}
+        <div class="toolbar-actions">
+          <button class="button small" type="submit">Apply</button>
+          {% if filtering %}<a class="table-link" href="{{ url_for('dashboard.index') }}">Clear filters</a>{% endif %}
+        </div>
       </form>
       {% endif %}
 
       {% if analyses %}
       <p class="result-count">Showing {{ analyses|length }}{% if more_results %} most relevant{% endif %} of {{ stats.total }} analyses.</p>
-      <table>
-        <thead><tr><th>Repository</th><th>Source</th><th>Status</th><th>Last updated</th><th>Actions</th></tr></thead>
-        <tbody>
-          {% for analysis in analyses %}
-          <tr>
-            <td>{{ analysis.repository_name }}{% if analysis.summary %}<br><small class="muted">{{ analysis.summary }}</small>{% endif %}</td>
-            <td>{{ sources.get(analysis.source_type, analysis.source_type) }}</td>
-            <td><span class="status status-{{ analysis.status }}">{{ statuses.get(analysis.status, analysis.status) }}</span>
-              {% if analysis.status == 'failed' and analysis.error_message %}<br><small class="muted">{{ analysis.error_message }}</small>{% endif %}</td>
-            <td>{{ analysis.updated_at }} UTC</td>
-            <td class="row-actions">
-              {% if analysis.status == 'complete' %}<a class="table-link" href="{{ url_for('dashboard.detail', analysis_id=analysis.id) }}">Open</a>
-              {% else %}<a class="table-link" href="{{ url_for('dashboard.progress', analysis_id=analysis.id) }}">{{ 'View progress' if analysis.status == 'running' else 'Details' }}</a>{% endif %}
-              {% if analysis.status != 'running' %}<a class="table-link danger-link" href="{{ url_for('dashboard.confirm_delete', analysis_id=analysis.id) }}">Delete</a>{% endif %}
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+      <div class="table-wrap">
+        <table class="table-stack analyses-table">
+          <thead><tr><th>Repository</th><th>Source</th><th>Status</th><th>Last updated</th><th>Actions</th></tr></thead>
+          <tbody>
+            {% for analysis in analyses %}
+            <tr class="stagger-in" style="--i: {{ loop.index0 }}" data-cursor="OPEN">
+              <td><span class="repo-name">{{ analysis.repository_name }}</span>{% if analysis.summary %}<br><small class="muted">{{ analysis.summary }}</small>{% endif %}</td>
+              <td data-label="Source"><span class="chip">{{ sources.get(analysis.source_type, analysis.source_type) }}</span></td>
+              <td data-label="Status"><span class="status status-{{ analysis.status }}">{{ statuses.get(analysis.status, analysis.status) }}</span>
+                {% if analysis.status == 'failed' and analysis.error_message %}<br><small class="muted">{{ analysis.error_message }}</small>{% endif %}</td>
+              <td class="mono" data-label="Last updated">{{ analysis.updated_at }} UTC</td>
+              <td data-label="Actions"><div class="row-actions">
+                {% if analysis.status == 'complete' %}<a class="table-link" href="{{ url_for('dashboard.detail', analysis_id=analysis.id) }}">Open</a>
+                {% else %}<a class="table-link" href="{{ url_for('dashboard.progress', analysis_id=analysis.id) }}">{{ 'View progress' if analysis.status == 'running' else 'Details' }}</a>{% endif %}
+                {% if analysis.status != 'running' %}<a class="table-link danger-link" href="{{ url_for('dashboard.confirm_delete', analysis_id=analysis.id) }}">Delete</a>{% endif %}
+              </div></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
       {% elif filtering %}
-      <div class="empty"><div>⌕</div><h3>No analyses match these filters</h3><p>Try a different name or clear the filters to see all {{ stats.total }} analyses.</p>
+      <div class="empty"><div class="empty-icon" aria-hidden="true">⌕</div><h3>No analyses match these filters</h3><p>Try a different name or clear the filters to see all {{ stats.total }} analyses.</p>
         <a class="button" href="{{ url_for('dashboard.index') }}">Clear filters</a></div>
       {% else %}
-      <div class="empty"><div>⌕</div><h3>No repositories yet</h3><p>Your investigations will appear here after you analyze a repository.</p>
-        <a class="button" href="{{ url_for('dashboard.new_analysis') }}">Analyze your first repository</a></div>
+      <div class="empty"><div class="empty-icon" aria-hidden="true">⌕</div><h3>No repositories yet</h3><p>Your investigations will appear here after you analyze a repository.</p>
+        <a class="button" href="{{ url_for('dashboard.new_analysis') }}">Analyze your first repository <span class="arrow">→</span></a></div>
       {% endif %}
     </section>
   </main>

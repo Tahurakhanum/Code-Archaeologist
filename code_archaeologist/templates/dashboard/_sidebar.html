@@ -1,0 +1,27 @@
+{# Shared sidebar for every dashboard page.
+   Before including, set:
+     nav_active: 'overview' or 'new' (optional)
+     nav_extra:  label of the current sub-page, such as 'Analysis result' (optional) #}
+<aside class="sidebar">
+  <div class="sidebar-top">
+    <a class="brand" href="/"><span class="brand-mark" aria-hidden="true"></span><span>Code<br>Archaeologist</span></a>
+    <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="sidebarPanel" aria-label="Toggle menu"><span></span><span></span></button>
+  </div>
+  <div class="sidebar-panel" id="sidebarPanel">
+    <div class="sidebar-panel-inner">
+      <p class="nav-label">Navigate</p>
+      <nav aria-label="Main">
+        <a class="nav-link{% if nav_active == 'overview' %} active{% endif %}"{% if nav_active == 'overview' %} aria-current="page"{% endif %} href="{{ url_for('dashboard.index') }}">Overview</a>
+        <a class="nav-link{% if nav_active == 'new' %} active{% endif %}"{% if nav_active == 'new' %} aria-current="page"{% endif %} href="{{ url_for('dashboard.new_analysis') }}">New analysis</a>
+        {% if nav_extra %}<a class="nav-link active" aria-current="page" href="#">{{ nav_extra }}</a>{% endif %}
+      </nav>
+      <div class="sidebar-foot">
+        <div class="clock" data-clock aria-hidden="true"></div>
+        <form method="post" action="{{ url_for('auth.logout') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="plain-button" type="submit">Log out</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</aside>

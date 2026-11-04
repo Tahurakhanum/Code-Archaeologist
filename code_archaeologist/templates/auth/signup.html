@@ -1,1 +1,29 @@
-{% extends 'auth/form.html' %}{% block title %}Sign up · Code Archaeologist{% endblock %}{% block form_content %}<p class="eyebrow">START EXPLORING</p><h1>Create your workspace.</h1><form method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><label>Name<input required type="text" name="name" minlength="2" autocomplete="name"></label><label>Email<input required type="email" name="email" autocomplete="email"></label><label>Password <small>8+ characters</small><input required type="password" name="password" minlength="8" autocomplete="new-password"></label><button class="button" type="submit">Create account</button></form><p class="muted">Already have an account? <a href="{{ url_for('auth.login') }}">Log in</a></p>{% endblock %}
+{% extends 'auth/form.html' %}
+{% block title %}Sign up · Code Archaeologist{% endblock %}
+{% block form_content %}
+<p class="eyebrow">START EXPLORING</p>
+<h1 class="display"><span class="line"><span class="line-inner">Create your</span></span> <span class="line"><span class="line-inner"><em class="gradient-text">workspace.</em></span></span></h1>
+<form method="post">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="field">
+    <input id="signup-name" required type="text" name="name" minlength="2" autocomplete="name" placeholder=" ">
+    <label for="signup-name">Name</label>
+    <span class="field-line" aria-hidden="true"></span>
+  </div>
+  <div class="field">
+    <input id="signup-email" required type="email" name="email" autocomplete="email" placeholder=" ">
+    <label for="signup-email">Email</label>
+    <span class="field-line" aria-hidden="true"></span>
+  </div>
+  <div>
+    <div class="field">
+      <input id="signup-password" required type="password" name="password" minlength="8" autocomplete="new-password" placeholder=" " aria-describedby="signup-password-hint">
+      <label for="signup-password">Password</label>
+      <span class="field-line" aria-hidden="true"></span>
+    </div>
+    <p class="field-hint" id="signup-password-hint">8+ characters</p>
+  </div>
+  <button class="button" type="submit">Create account <span class="arrow">→</span></button>
+</form>
+<p class="auth-switch">Already have an account? <a class="table-link" href="{{ url_for('auth.login') }}">Log in</a></p>
+{% endblock %}

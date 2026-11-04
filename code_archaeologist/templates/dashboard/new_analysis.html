@@ -1,4 +1,78 @@
-{% extends 'base.html' %}{% block title %}New analysis · Code Archaeologist{% endblock %}{% block body %}
-<div class="app-shell"><aside><a class="brand" href="/">⌘ Archaeologist</a><nav><a href="{{ url_for('dashboard.index') }}">Overview</a><a class="active" href="{{ url_for('dashboard.new_analysis') }}">New analysis</a></nav><form method="post" action="{{ url_for('auth.logout') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="plain-button">Log out</button></form></aside><main class="dashboard narrow"><a class="back-link" href="{{ url_for('dashboard.index') }}">← Back to dashboard</a><p class="eyebrow">NEW INVESTIGATION</p><h1>Choose a repository.</h1><p class="intro">Code Archaeologist reads source files and Git metadata without executing any repository code.</p>{% with messages = get_flashed_messages(with_categories=true) %}{% for category, message in messages %}<p class="flash {{ category }}">{{ message }}</p>{% endfor %}{% endwith %}<form class="ingestion-form" method="post" enctype="multipart/form-data"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><fieldset><legend><input checked type="radio" name="source_type" value="github"> Public GitHub repository</legend><p>Clone a public HTTPS GitHub URL. The first {{ config.GIT_CLONE_DEPTH }} commits are inspected.</p><label>Repository URL<input type="url" name="repository_url" placeholder="https://github.com/owner/repository"></label></fieldset><fieldset><legend><input type="radio" name="source_type" value="zip"> ZIP source archive</legend><p>Upload source code up to {{ (config.MAX_CONTENT_LENGTH / 1024 / 1024)|int }} MB. Git history is unavailable unless usable Git metadata is included.</p><label>ZIP archive<input type="file" name="archive" accept=".zip,application/zip"></label></fieldset><button id="analysisSubmit" class="button" type="submit">Start safe analysis <span>→</span></button></form></main></div>
+{% extends 'base.html' %}
+{% block title %}New analysis · Code Archaeologist{% endblock %}
+{% block body %}
+<div class="app-shell">
+  {% with nav_active='new' %}{% include 'dashboard/_sidebar.html' %}{% endwith %}
+
+  <main id="main" class="dashboard narrow">
+    <a class="back-link" href="{{ url_for('dashboard.index') }}">← Back to dashboard</a>
+    <p class="eyebrow">NEW INVESTIGATION</p>
+    <h1><span class="line"><span class="line-inner">Choose a <em class="gradient-text">repository.</em></span></span></h1>
+    <p class="intro">Code Archaeologist reads source files and Git metadata without executing any repository code.</p>
+    {% include 'dashboard/_flashes.html' %}
+
+    <form class="ingestion-form" method="post" enctype="multipart/form-data">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      {# Two big cards. Each is a <label> wrapping a real radio input, so clicking,
+         keyboard arrows and form submission all behave like normal radio buttons. #}
+      <fieldset class="source-grid">
+        <legend class="sr-only">Repository source</legend>
+        <label class="card source-card">
+          <input class="sr-only" checked type="radio" name="source_type" value="github">
+          <span class="source-tick" aria-hidden="true"></span>
+          <span class="chip">[ 01 ] REMOTE</span>
+          <strong>Public GitHub repository</strong>
+          <span class="source-copy">Clone a public HTTPS GitHub URL. The first {{ config.GIT_CLONE_DEPTH }} commits are inspected.</span>
+        </label>
+        <label class="card source-card">
+          <input class="sr-only" type="radio" name="source_type" value="zip">
+          <span class="source-tick" aria-hidden="true"></span>
+          <span class="chip">[ 02 ] UPLOAD</span>
+          <strong>ZIP source archive</strong>
+          <span class="source-copy">Upload source code up to {{ (config.MAX_CONTENT_LENGTH / 1024 / 1024)|int }} MB. Git history is unavailable unless usable Git metadata is included.</span>
+        </label>
+      </fieldset>
+
+      <div class="source-panel panel-github">
+        <label class="form-label" for="repository-url">Repository URL</label>
+        <input id="repository-url" type="url" name="repository_url" placeholder="https://github.com/owner/repository">
+      </div>
+
+      <div class="source-panel panel-zip">
+        <span class="form-label" id="archive-label">ZIP archive</span>
+        {# The real file input is stretched invisibly over the zone, so a click or a drop lands on it. #}
+        <div class="dropzone">
+          <input type="file" name="archive" accept=".zip,application/zip" aria-labelledby="archive-label">
+          <div class="dropzone-copy" aria-hidden="true">
+            <span class="empty-icon">↑</span>
+            <strong>Drop a ZIP here, or click to browse</strong>
+          </div>
+          <p class="dropzone-file" data-file-name aria-live="polite"></p>
+        </div>
+      </div>
+
+      <div><button id="analysisSubmit" class="button" type="submit">Start safe analysis <span class="arrow">→</span></button></div>
+    </form>
+  </main>
+</div>
 {% endblock %}
-{% block scripts %}<script>document.querySelector('.ingestion-form').addEventListener('submit',function(){const button=document.getElementById('analysisSubmit');button.disabled=true;button.textContent='Analyzing repository…';});</script>{% endblock %}
+{% block scripts %}
+<script>
+  const form = document.querySelector('.ingestion-form');
+  const button = document.getElementById('analysisSubmit');
+  const buttonContent = button.innerHTML;
+  form.addEventListener('submit', function () {
+    button.disabled = true;
+    button.textContent = 'Analyzing repository…';
+    button.classList.add('is-loading');
+  });
+  // The back button can restore a frozen copy of this page, so put the button back.
+  window.addEventListener('pageshow', function (event) {
+    if (!event.persisted) return;
+    button.disabled = false;
+    button.innerHTML = buttonContent;
+    button.classList.remove('is-loading');
+  });
+</script>
+{% endblock %}

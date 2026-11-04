@@ -1,1 +1,21 @@
-{% extends 'auth/form.html' %}{% block title %}Log in · Code Archaeologist{% endblock %}{% block form_content %}<p class="eyebrow">WELCOME BACK</p><h1>Continue your investigation.</h1><form method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><label>Email<input required type="email" name="email" autocomplete="email"></label><label>Password<input required type="password" name="password" autocomplete="current-password"></label><button class="button" type="submit">Log in</button></form><p class="muted">New here? <a href="{{ url_for('auth.signup') }}">Create an account</a></p>{% endblock %}
+{% extends 'auth/form.html' %}
+{% block title %}Log in · Code Archaeologist{% endblock %}
+{% block form_content %}
+<p class="eyebrow">WELCOME BACK</p>
+<h1 class="display"><span class="line"><span class="line-inner">Continue your</span></span> <span class="line"><span class="line-inner"><em class="gradient-text">investigation.</em></span></span></h1>
+<form method="post">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="field">
+    <input id="login-email" required type="email" name="email" autocomplete="email" placeholder=" ">
+    <label for="login-email">Email</label>
+    <span class="field-line" aria-hidden="true"></span>
+  </div>
+  <div class="field">
+    <input id="login-password" required type="password" name="password" autocomplete="current-password" placeholder=" ">
+    <label for="login-password">Password</label>
+    <span class="field-line" aria-hidden="true"></span>
+  </div>
+  <button class="button" type="submit">Log in <span class="arrow">→</span></button>
+</form>
+<p class="auth-switch">New here? <a class="table-link" href="{{ url_for('auth.signup') }}">Create an account</a></p>
+{% endblock %}

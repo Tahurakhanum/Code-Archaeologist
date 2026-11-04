@@ -1,4 +1,165 @@
-{% extends 'base.html' %}{% block body %}
-<header class="site-header"><a class="brand" href="/">⌘ Code Archaeologist</a><nav>{% if session.get('user_id') %}<a href="{{ url_for('dashboard.index') }}">Dashboard</a>{% else %}<a href="{{ url_for('auth.login') }}">Log in</a><a class="button small" href="{{ url_for('auth.signup') }}">Sign up</a>{% endif %}</nav></header>
-<main><section class="hero"><p class="eyebrow">REPOSITORY INTELLIGENCE</p><h1>Unearth the story<br>behind your code.</h1><p class="lead">Trace change history, spot maintenance risks, and learn who shaped every part of a software project.</p><div class="actions"><a class="button" href="{{ url_for('auth.signup') }}">Get started free <span>→</span></a><a class="text-link" href="#features">Explore features</a></div></section><section id="features" class="features"><article><b>01</b><h2>Read the past</h2><p>Turn Git history into a clear timeline of meaningful changes.</p></article><article><b>02</b><h2>Find the fragile</h2><p>Identify frequently changed and knowledge-concentrated code.</p></article><article><b>03</b><h2>Understand the why</h2><p>Investigate files, contributors, commits, and maintenance signals.</p></article></section></main><footer>Built for careful software investigation.</footer>
+{% extends 'base.html' %}
+{% block body_class %}page-public page-landing{% endblock %}
+{% block body %}
+<header class="site-header wrap">
+  <a class="brand" href="/"><span class="brand-mark" aria-hidden="true"></span><span>Code<br>Archaeologist</span></a>
+  <nav aria-label="Account">
+    {% if session.get('user_id') %}
+    <a class="button small" href="{{ url_for('dashboard.index') }}">Dashboard <span class="arrow">→</span></a>
+    {% else %}
+    <a class="nav-text" href="{{ url_for('auth.login') }}">Log in</a>
+    <a class="button small" href="{{ url_for('auth.signup') }}">Sign up</a>
+    {% endif %}
+  </nav>
+</header>
+
+{# ui.js fills this from every [data-toc] section below. #}
+<nav class="page-index page-index-fixed" data-page-index data-start="0" aria-label="On this page"></nav>
+
+<main id="main" class="landing">
+  <section class="hero wrap" id="overview" data-toc="Overview">
+    <div class="orb" aria-hidden="true">
+      <span class="orb-core"></span><span class="orb-violet"></span><span class="orb-halo"></span>
+    </div>
+
+    <div class="hero-meta">
+      <p class="eyebrow sec-code">REPOSITORY INTELLIGENCE</p>
+      <div class="clock" data-clock aria-hidden="true"></div>
+    </div>
+
+    <h1 class="hero-title display">
+      <span class="line"><span class="line-inner">Unearth the story</span></span>
+      <span class="line"><span class="line-inner">behind your <em class="gradient-text">code.</em></span></span>
+    </h1>
+
+    <div class="hero-foot">
+      <p class="lead">Trace change history, spot maintenance risks, and learn who shaped every part of a software project.</p>
+      <div class="actions">
+        {% if session.get('user_id') %}
+        <a class="button" href="{{ url_for('dashboard.index') }}">Open your dashboard <span class="arrow">→</span></a>
+        {% else %}
+        <a class="button" href="{{ url_for('auth.signup') }}">Get started free <span class="arrow">→</span></a>
+        <a class="button button-secondary" href="{{ url_for('auth.login') }}">Log in</a>
+        {% endif %}
+        <a class="text-link" href="#features">Explore features</a>
+      </div>
+    </div>
+
+    <ul class="hero-specs" aria-label="Key facts">
+      <li><span class="status status-complete">Verified</span> Reads source files and Git metadata</li>
+      <li><span class="status status-complete">Safe</span> Never executes repository code</li>
+    </ul>
+  </section>
+
+  <div class="ticker" aria-hidden="true">
+    <div class="ticker-track">
+      {% for _ in range(2) %}
+      <div class="ticker-group">
+        <span>Python</span><i></i><span>JavaScript / JSX</span><i></i><span>TypeScript / TSX</span><i></i><span>Java</span><i></i><span>C#</span><i></i><span>Git history</span><i></i><span>Commit timelines</span><i></i><span>Maintenance signals</span><i></i>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  {# The thread: ui.js measures each .feature-node and draws a curve through them. #}
+  <section id="features" class="features wrap thread-scope" aria-label="Features">
+    <svg class="thread" aria-hidden="true" focusable="false">
+      <path class="thread-base" pathLength="1"></path>
+      <path class="thread-line" pathLength="1"></path>
+    </svg>
+
+    <article class="feature" id="read-the-past" data-toc="Read the past">
+      <span class="feature-node" aria-hidden="true"></span>
+      <div class="feature-body">
+        <b class="feature-number" aria-hidden="true">01</b>
+        <p class="eyebrow sec-code">TIMELINE</p>
+        <h2 class="feature-title">Read the past</h2>
+        <p class="feature-copy">Turn Git history into a clear timeline of meaningful changes.</p>
+        <div class="terminal" aria-hidden="true">
+          <div class="terminal-bar"><i></i><i></i><i></i><span>example diff</span></div>
+          <pre><span class="snippet-line line-hunk">@@ billing.py @@</span><span class="snippet-line line-del">-    return sum(items)</span><span class="snippet-line line-add">+    return round(sum(items), 2)</span></pre>
+        </div>
+      </div>
+    </article>
+
+    <article class="feature feature-right" id="find-the-fragile" data-toc="Find the fragile">
+      <span class="feature-node" aria-hidden="true"></span>
+      <div class="feature-body">
+        <b class="feature-number" aria-hidden="true">02</b>
+        <p class="eyebrow sec-code">SIGNALS</p>
+        <h2 class="feature-title">Find the fragile</h2>
+        <p class="feature-copy">Identify frequently changed and knowledge-concentrated code.</p>
+        <div class="chips" aria-hidden="true">
+          <span class="chip">FREQUENTLY CHANGED</span><span class="chip">KNOWLEDGE CONCENTRATED</span><span class="chip">NOT A CONFIRMED BUG</span>
+        </div>
+      </div>
+    </article>
+
+    <article class="feature" id="understand-the-why" data-toc="Understand the why">
+      <span class="feature-node" aria-hidden="true"></span>
+      <div class="feature-body">
+        <b class="feature-number" aria-hidden="true">03</b>
+        <p class="eyebrow sec-code">INVESTIGATION</p>
+        <h2 class="feature-title">Understand the why</h2>
+        <p class="feature-copy">Investigate files, contributors, commits, and maintenance signals.</p>
+        <div class="terminal" aria-hidden="true">
+          <div class="terminal-bar"><i></i><i></i><i></i><span>example question</span></div>
+          <pre><span class="snippet-line"><span class="snippet-prompt">$</span> who worked on billing.py?</span><span class="snippet-line line-add">✓ answered from verified Git evidence</span></pre>
+        </div>
+      </div>
+    </article>
+  </section>
+
+  <section class="capabilities" id="capabilities" data-toc="Capabilities">
+    <div class="wrap section-head">
+      <p class="eyebrow sec-code">CAPABILITIES</p>
+      <h2 class="section-title display">Everything in one report.</h2>
+    </div>
+    <div class="drag-strip" data-cursor="DRAG" tabindex="0" role="region" aria-label="Capabilities, scrolls sideways">
+      <article class="card strip-card"><span class="chip">[ 01 ]</span><h3>Commit activity</h3><p>See how many commits landed each day, week or month, gaps included.</p></article>
+      <article class="card strip-card"><span class="chip">[ 02 ]</span><h3>Contributors</h3><p>Commits per person, and who was active when, without implying ownership.</p></article>
+      <article class="card strip-card"><span class="chip">[ 03 ]</span><h3>Maintenance signals</h3><p>Areas worth a closer look, each backed by the evidence behind it.</p></article>
+      <article class="card strip-card"><span class="chip">[ 04 ]</span><h3>Code relationships</h3><p>What each function, component or class calls, and what calls it.</p></article>
+      <article class="card strip-card"><span class="chip">[ 05 ]</span><h3>Grounded answers</h3><p>Ask questions and get verified facts, hypotheses and supporting evidence.</p></article>
+      <article class="card strip-card"><span class="chip">[ 06 ]</span><h3>PDF report</h3><p>Download the charts, signals and saved answers as one document.</p></article>
+    </div>
+  </section>
+
+  <section class="how wrap" id="how-it-works" data-toc="How it works">
+    <div class="section-head">
+      <p class="eyebrow sec-code">HOW IT WORKS</p>
+      <h2 class="section-title display">From repository to <em class="gradient-text">answers.</em></h2>
+    </div>
+    <div class="how-grid">
+      <ol class="how-steps">
+        <li data-reveal><b>01</b><div><h3>Choose a source</h3><p>Paste a public GitHub URL or upload a ZIP archive.</p></div></li>
+        <li data-reveal><b>02</b><div><h3>Let it read</h3><p>Files and Git metadata are analyzed. Repository code is never run.</p></div></li>
+        <li data-reveal><b>03</b><div><h3>Explore the report</h3><p>Charts, timelines, signals and code relationships in one place.</p></div></li>
+        <li data-reveal><b>04</b><div><h3>Ask and export</h3><p>Question any part of the project, then download the PDF.</p></div></li>
+      </ol>
+      <div class="terminal how-terminal" data-reveal aria-hidden="true">
+        <div class="terminal-bar"><i></i><i></i><i></i><span>analysis</span></div>
+        <pre><span class="snippet-line"><span class="snippet-prompt">$</span> analyze github.com/owner/repository</span><span class="snippet-line line-add">✓ Scanning files and file types</span><span class="snippet-line line-add">✓ Parsing functions, classes, and components</span><span class="snippet-line line-add">✓ Reading Git history, contributors, and diffs</span><span class="snippet-line line-add">✓ Detecting maintenance signals</span><span class="snippet-line line-add">✓ Analysis complete</span></pre>
+      </div>
+    </div>
+  </section>
+
+  <section class="cta wrap" id="begin" data-toc="Begin">
+    <p class="eyebrow sec-code">BEGIN</p>
+    <h2 class="cta-title display">Start your first <em class="gradient-text">dig.</em></h2>
+    <div class="actions">
+      {% if session.get('user_id') %}
+      <a class="button" href="{{ url_for('dashboard.new_analysis') }}">Analyze a repository <span class="arrow">→</span></a>
+      {% else %}
+      <a class="button" href="{{ url_for('auth.signup') }}">Sign up <span class="arrow">→</span></a>
+      <a class="button button-secondary" href="{{ url_for('auth.login') }}">Log in</a>
+      {% endif %}
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer wrap">
+  <span>Built for careful software investigation.</span>
+  <div class="clock" data-clock aria-hidden="true"></div>
+</footer>
 {% endblock %}

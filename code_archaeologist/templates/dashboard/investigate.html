@@ -2,43 +2,32 @@
 {% block title %}Investigate code · Code Archaeologist{% endblock %}
 {% block body %}
 <div class="app-shell">
-  <aside>
-    <a class="brand" href="/">⌘ Archaeologist</a>
-    <nav>
-      <a href="{{ url_for('dashboard.index') }}">Overview</a>
-      <a href="{{ url_for('dashboard.new_analysis') }}">New analysis</a>
-      <a class="active" href="#">Investigate code</a>
-    </nav>
-    <form method="post" action="{{ url_for('auth.logout') }}">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <button class="plain-button">Log out</button>
-    </form>
-  </aside>
+  {% with nav_extra='Investigate code' %}{% include 'dashboard/_sidebar.html' %}{% endwith %}
 
-  <main class="dashboard narrow">
+  <main id="main" class="dashboard narrow">
     <a class="back-link" href="{{ url_for('dashboard.detail', analysis_id=analysis.id) }}">← Back to {{ analysis.repository_name }}</a>
     <p class="eyebrow">SPECIFIC-PART INVESTIGATION</p>
-    <h1>Understand a code entity.</h1>
+    <h1><span class="line"><span class="line-inner">Understand a <em class="gradient-text">code entity.</em></span></span></h1>
     <p class="intro">Ask about the whole repository, or select a detected function, component, method, or class. Answers use only saved source excerpts, detected relationships, and Git evidence.</p>
     {% include 'dashboard/_flashes.html' %}
 
-    <section class="recent ask-panel" id="repository-question">
-      <p class="eyebrow">ASK ABOUT THE WHOLE REPOSITORY</p>
+    <section class="card ask-panel" id="repository-question">
+      <p class="eyebrow sec-code">ASK ABOUT THE WHOLE REPOSITORY</p>
       <h2>Repository questions</h2>
       <p class="intro">Try: “Who worked on this project?”, “Which files are risky?”, “What libraries does it depend on?”, “When was it most active?”, or “What are the core parts?”</p>
       <form method="post" action="{{ url_for('dashboard.ask_repository', analysis_id=analysis.id) }}">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <label>Your question
+        <label><span class="form-label">Your question</span>
           <textarea name="question" required maxlength="800" placeholder="Which files are risky?">{{ repository_question|default('') }}</textarea>
         </label>
-        <button class="button" type="submit">Ask about the repository →</button>
+        <button class="button" type="submit">Ask about the repository <span class="arrow">→</span></button>
       </form>
       {% if repository_answer %}{% with answer = repository_answer %}{% include 'dashboard/_answer.html' %}{% endwith %}{% endif %}
     </section>
 
     {% if result.entities %}
-    <form class="entity-picker" method="get">
-      <label for="entity">Function, component, method, or class
+    <form class="card entity-picker" method="get">
+      <label for="entity"><span class="form-label">Function, component, method, or class</span>
         <select id="entity" name="entity" onchange="this.form.submit()">
           <option value="">Select an entity… ({{ result.entities|length }} detected)</option>
           {% for path, items in result.entities|groupby('path') %}
@@ -54,7 +43,7 @@
     </form>
     {% else %}
     <div class="empty">
-      <div>⌘</div>
+      <div class="empty-icon" aria-hidden="true">⌘</div>
       <h3>No supported functions or classes found</h3>
       <p>This analysis may predate the parser, or its source type is not yet supported. Re-run analysis after uploading Python, JavaScript/JSX, TypeScript/TSX, Java, or C# code.</p>
     </div>
@@ -63,29 +52,36 @@
     {% if entity %}
     {% set file_info = result.code_files|default([])|selectattr('path', 'equalto', entity.path)|first %}
     <section class="investigation">
-      <article class="recent">
-        <p class="eyebrow">SELECTED {{ entity.kind|upper }}</p>
+      <article class="card" data-reveal>
+        <p class="eyebrow sec-code">SELECTED {{ entity.kind|upper }}</p>
         <h2>{{ entity.display_name|default(entity.name) }}</h2>
         <p class="intro"><code>{{ entity.path }}</code>, lines {{ entity.start_line }}–{{ entity.end_line }}</p>
-        <pre><code>{{ entity.excerpt }}</code></pre>
+        <div class="terminal">
+          <div class="terminal-bar" aria-hidden="true"><i></i><i></i><i></i><span>{{ entity.path }}</span></div>
+          <pre data-lines data-start="{{ entity.start_line }}"><code>{{ entity.excerpt }}</code></pre>
+        </div>
       </article>
 
-      <article class="recent relationships">
-        <p class="eyebrow">RELATIONSHIPS</p>
+      <article class="card relationships" data-reveal>
+        <p class="eyebrow sec-code">RELATIONSHIPS</p>
         <h2>How it connects</h2>
         {% if entity.calls is defined %}
         <div class="relationship-grid">
           <div>
             <h3>Calls / renders</h3>
+            <div class="relation-list">
             {% for link in entity.calls %}
             <a class="relation-link" href="{{ url_for('dashboard.investigate', analysis_id=analysis.id, entity=link.id) }}">{{ link.name }}<small>{{ link.path }}:{{ link.line }}</small></a>
             {% else %}<p class="empty-copy">No detected functions or classes referenced.</p>{% endfor %}
+            </div>
           </div>
           <div>
             <h3>Called / used by</h3>
+            <div class="relation-list">
             {% for link in entity.called_by %}
             <a class="relation-link" href="{{ url_for('dashboard.investigate', analysis_id=analysis.id, entity=link.id) }}">{{ link.name }}<small>{{ link.path }}:{{ link.line }}</small></a>
             {% else %}<p class="empty-copy">No callers detected by name.</p>{% endfor %}
+            </div>
           </div>
         </div>
         {% if file_info %}
@@ -106,35 +102,35 @@
         {% endif %}
       </article>
 
-      <article class="recent">
-        <p class="eyebrow">VERIFIED FACTS</p>
+      <article class="card facts-card" data-reveal>
+        <p class="eyebrow sec-code">VERIFIED FACTS</p>
         <h2>What we can verify</h2>
         <ul>{% for fact in explanation.facts %}<li>{{ fact }}</li>{% endfor %}</ul>
-        <p class="eyebrow">HYPOTHESES</p>
+        <p class="eyebrow sec-code">HYPOTHESES</p>
         <h2>What to investigate</h2>
         <ul>{% for item in explanation.hypotheses %}<li>{{ item }}</li>{% endfor %}</ul>
         <p class="limitation">{{ explanation.limitation }}</p>
       </article>
     </section>
 
-    <section class="recent ask-panel">
-      <p class="eyebrow">ASK ABOUT THIS CODE</p>
+    <section class="card ask-panel">
+      <p class="eyebrow sec-code">ASK ABOUT THIS CODE</p>
       <h2>Investigation assistant</h2>
       <p class="intro">Try: “What does this code do?”, “Who worked on it?”, “What calls this?”, or “What could break if it changes?”</p>
       <form method="post" action="{{ url_for('dashboard.ask_question', analysis_id=analysis.id) }}">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <input type="hidden" name="entity_id" value="{{ entity.id }}">
-        <label>Your question
+        <label><span class="form-label">Your question</span>
           <textarea name="question" required maxlength="800" placeholder="What does this code do?">{{ asked_question|default('') }}</textarea>
         </label>
-        <button class="button" type="submit">Ask about this code →</button>
+        <button class="button" type="submit">Ask about this code <span class="arrow">→</span></button>
       </form>
       {% if answer %}{% include 'dashboard/_answer.html' %}{% endif %}
     </section>
     {% endif %}
 
-    <section class="recent report-section saved-notes">
-      <p class="eyebrow">SAVED ANSWERS</p>
+    <section class="card section-gap saved-notes">
+      <p class="eyebrow sec-code">SAVED ANSWERS</p>
       <h2>Investigation history</h2>
       <p class="intro">Every answered question is saved here and the latest 10 are included in the PDF report.</p>
       {% for note in notes %}

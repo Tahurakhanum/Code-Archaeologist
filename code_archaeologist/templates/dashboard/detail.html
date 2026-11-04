@@ -2,136 +2,138 @@
 {% block title %}{{ analysis.repository_name }} · Code Archaeologist{% endblock %}
 {% block body %}
 <div class="app-shell">
-  <aside>
-    <a class="brand" href="/">⌘ Archaeologist</a>
-    <nav>
-      <a href="{{ url_for('dashboard.index') }}">Overview</a>
-      <a href="{{ url_for('dashboard.new_analysis') }}">New analysis</a>
-      <a class="active" href="#">Analysis result</a>
-    </nav>
-    <form method="post" action="{{ url_for('auth.logout') }}">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <button class="plain-button">Log out</button>
-    </form>
-  </aside>
+  {% with nav_extra='Analysis result' %}{% include 'dashboard/_sidebar.html' %}{% endwith %}
 
-  <main class="dashboard">
+  <main id="main" class="dashboard">
     <a class="back-link" href="{{ url_for('dashboard.index') }}">← All analyses</a>
-    <header>
+    <header class="page-header page-header-stacked">
       <div>
         <p class="eyebrow">{{ analysis.source_type|upper }} ANALYSIS</p>
-        <h1>{{ analysis.repository_name }}</h1>
+        <h1><span class="line"><span class="line-inner">{{ analysis.repository_name }}</span></span></h1>
         <p class="intro">{{ result.history_note }}</p>
       </div>
-      <a class="danger-button" href="{{ url_for('dashboard.confirm_delete', analysis_id=analysis.id) }}">Delete analysis</a>
+      {# app.js adds the Investigate, Timeline and PDF buttons in front of Delete. #}
+      <div class="page-actions">
+        <a class="danger-button" href="{{ url_for('dashboard.confirm_delete', analysis_id=analysis.id) }}">Delete analysis</a>
+      </div>
     </header>
     {% include 'dashboard/_flashes.html' %}
 
-    <section class="metrics metrics-four">
-      <article><span>Total files</span><strong>{{ result.total_files }}</strong></article>
-      <article><span>Source files</span><strong>{{ result.source_files }}</strong></article>
-      <article><span>Git commits</span><strong>{{ result.total_commits }}</strong></article>
-      <article><span>Contributors</span><strong>{{ result.total_contributors|default(result.contributors|length) }}</strong></article>
-    </section>
+    <div class="detail-layout">
+      {# ui.js fills this from every [data-toc] element below, so it matches what was rendered. #}
+      <nav class="page-index detail-index" data-page-index aria-label="On this page"></nav>
 
-    {# ---------- Activity over time ---------- #}
-    {% if result.total_commits %}
-    <section class="recent report-section chart-card">
-      <p class="eyebrow">COMMIT ACTIVITY</p>
-      {% if result.commit_activity %}
-      <h2>Commits per {{ result.commit_activity.granularity }}</h2>
-      <p class="intro">How many analyzed commits happened in each {{ result.commit_activity.granularity }}. Gaps show periods with no commits.</p>
-      <div class="chart-box"><canvas id="commitActivityChart" aria-label="Line chart of commits over time" role="img"></canvas></div>
-      {% else %}
-      <h2>Activity over time</h2>
-      <p class="empty-copy">This analysis was saved before activity charts were added. Run a new analysis of the repository to see them.</p>
-      {% endif %}
-    </section>
-    {% endif %}
+      <div class="detail-main">
+        <section id="overview" data-toc="Overview">
+          <p class="eyebrow sec-code">OVERVIEW</p>
+          <div class="metrics metrics-four">
+            <article class="card metric" data-reveal><span>Total files</span><strong data-count>{{ result.total_files }}</strong></article>
+            <article class="card metric" data-reveal><span>Source files</span><strong data-count>{{ result.source_files }}</strong></article>
+            <article class="card metric" data-reveal><span>Git commits</span><strong data-count>{{ result.total_commits }}</strong></article>
+            <article class="card metric" data-reveal><span>Contributors</span><strong data-count>{{ result.total_contributors|default(result.contributors|length) }}</strong></article>
+          </div>
+        </section>
 
-    <section class="result-grid report-section">
-      <article class="recent">
-        <p class="eyebrow">CONTRIBUTORS</p>
-        <h2>Most active contributors</h2>
-        {% if result.contributors %}
-        <div class="chart-box"><canvas id="contributorChart" aria-label="Bar chart of commits per contributor" role="img"></canvas></div>
-        {% else %}<p class="empty-copy">Contributor data needs Git history.</p>{% endif %}
-      </article>
-      <article class="recent">
-        <p class="eyebrow">CONTRIBUTOR ACTIVITY</p>
-        <h2>Who committed when</h2>
-        {% if result.contributor_activity %}
-        <div class="chart-box"><canvas id="contributorActivityChart" aria-label="Stacked bar chart of commits per contributor over time" role="img"></canvas></div>
-        {% elif result.contributors %}
-        <p class="empty-copy">Run a new analysis to see contributor activity over time.</p>
-        {% else %}<p class="empty-copy">Contributor activity needs Git history.</p>{% endif %}
-      </article>
-    </section>
+        {# ---------- Activity over time ---------- #}
+        {% if result.total_commits %}
+        <section class="card chart-card" id="activity" data-toc="Activity" data-reveal>
+          <p class="eyebrow sec-code">COMMIT ACTIVITY</p>
+          {% if result.commit_activity %}
+          <h2>Commits per {{ result.commit_activity.granularity }}</h2>
+          <p class="intro">How many analyzed commits happened in each {{ result.commit_activity.granularity }}. Gaps show periods with no commits.</p>
+          <div class="chart-box" data-cursor="VIEW"><canvas id="commitActivityChart" aria-label="Line chart of commits over time" role="img"></canvas></div>
+          {% else %}
+          <h2>Activity over time</h2>
+          <p class="empty-copy">This analysis was saved before activity charts were added. Run a new analysis of the repository to see them.</p>
+          {% endif %}
+        </section>
+        {% endif %}
 
-    <section class="result-grid report-section">
-      <article class="recent">
-        <p class="eyebrow">FILE TYPES</p>
-        <h2>Repository structure</h2>
-        <table><tbody>
-          {% for extension, count in result.file_types %}<tr><td>{{ extension }}</td><td>{{ count }} files</td></tr>
-          {% else %}<tr><td>No files found</td></tr>{% endfor %}
-        </tbody></table>
-      </article>
-      <article class="recent">
-        <p class="eyebrow">FILE MODIFICATION FREQUENCY</p>
-        <h2>Most-changed files</h2>
+        <section class="result-grid">
+          <article class="card" id="contributors" data-toc="Contributors" data-reveal>
+            <p class="eyebrow sec-code">CONTRIBUTORS</p>
+            <h2>Most active contributors</h2>
+            {% if result.contributors %}
+            <div class="chart-box" data-cursor="VIEW"><canvas id="contributorChart" aria-label="Bar chart of commits per contributor" role="img"></canvas></div>
+            {% else %}<p class="empty-copy">Contributor data needs Git history.</p>{% endif %}
+          </article>
+          <article class="card" id="contributor-activity" data-toc="Who committed when" data-reveal>
+            <p class="eyebrow sec-code">CONTRIBUTOR ACTIVITY</p>
+            <h2>Who committed when</h2>
+            {% if result.contributor_activity %}
+            <div class="chart-box" data-cursor="VIEW"><canvas id="contributorActivityChart" aria-label="Stacked bar chart of commits per contributor over time" role="img"></canvas></div>
+            {% elif result.contributors %}
+            <p class="empty-copy">Run a new analysis to see contributor activity over time.</p>
+            {% else %}<p class="empty-copy">Contributor activity needs Git history.</p>{% endif %}
+          </article>
+        </section>
+
+        <section class="result-grid">
+          <article class="card" id="structure" data-toc="File types" data-reveal>
+            <p class="eyebrow sec-code">FILE TYPES</p>
+            <h2>Repository structure</h2>
+            <div class="table-wrap"><table><tbody>
+              {% for extension, count in result.file_types %}<tr><td class="mono">{{ extension }}</td><td>{{ count }} files</td></tr>
+              {% else %}<tr><td>No files found</td></tr>{% endfor %}
+            </tbody></table></div>
+          </article>
+          <article class="card" id="file-frequency" data-toc="Most-changed files" data-reveal>
+            <p class="eyebrow sec-code">FILE MODIFICATION FREQUENCY</p>
+            <h2>Most-changed files</h2>
+            {% if result.frequently_modified_files %}
+            <div class="chart-box" data-cursor="VIEW"><canvas id="fileFrequencyChart" aria-label="Bar chart of the most frequently modified files" role="img"></canvas></div>
+            {% else %}<p class="empty-copy">File change frequency needs Git history.</p>{% endif %}
+          </article>
+        </section>
+
+        {% if result.risks %}
+        <section class="card" id="signals" data-toc="Maintenance signals" data-reveal>
+          <p class="eyebrow sec-code">MAINTENANCE SIGNALS</p>
+          <h2>Areas worth investigating</h2>
+          <p class="intro">These signals are based on repository history; they are not confirmed bugs or measures of developer expertise.</p>
+          <div class="table-wrap"><table class="table-stack">
+            <thead><tr><th>File</th><th>Signal</th><th>Evidence</th></tr></thead>
+            <tbody>{% for risk in result.risks %}<tr><td data-label="File"><code>{{ risk.file }}</code></td><td data-label="Signal">{{ risk.reason }}</td><td data-label="Evidence">{{ risk.evidence }}</td></tr>{% endfor %}</tbody>
+          </table></div>
+        </section>
+        {% endif %}
+
+        {% if result.developer_areas %}
+        <section class="card" id="areas" data-toc="Who worked where" data-reveal>
+          <p class="eyebrow sec-code">WHO WORKED WHERE</p>
+          <h2>Developer contribution areas</h2>
+          <p class="intro">This is derived from changed files in commits. It does not establish ownership or effort.</p>
+          <div class="table-wrap"><table class="table-stack">
+            <thead><tr><th>Contributor</th><th>Observed files</th><th>Example areas</th></tr></thead>
+            <tbody>{% for developer in result.developer_areas %}<tr><td data-label="Contributor">{{ developer.name }}</td><td class="mono" data-label="Observed files">{{ developer.file_count }}</td><td data-label="Example areas"><code>{{ developer.files|join(', ') }}</code></td></tr>{% endfor %}</tbody>
+          </table></div>
+        </section>
+        {% endif %}
+
         {% if result.frequently_modified_files %}
-        <div class="chart-box"><canvas id="fileFrequencyChart" aria-label="Bar chart of the most frequently modified files" role="img"></canvas></div>
-        {% else %}<p class="empty-copy">File change frequency needs Git history.</p>{% endif %}
-      </article>
-    </section>
+        <section class="card" id="hotspots" data-toc="Change hotspots" data-reveal>
+          <p class="eyebrow sec-code">CHANGE HOTSPOTS</p>
+          <h2>Frequently modified files</h2>
+          <p class="intro">These are investigation signals, not confirmed defects.</p>
+          <div class="table-wrap"><table class="table-stack">
+            <thead><tr><th>File</th><th>Observed changes</th></tr></thead>
+            <tbody>{% for file in result.frequently_modified_files %}<tr><td data-label="File"><code>{{ file.path }}</code></td><td class="mono" data-label="Observed changes">{{ file.changes }}</td></tr>{% endfor %}</tbody>
+          </table></div>
+        </section>
+        {% endif %}
 
-    {% if result.risks %}
-    <section class="recent report-section">
-      <p class="eyebrow">MAINTENANCE SIGNALS</p>
-      <h2>Areas worth investigating</h2>
-      <p class="intro">These signals are based on repository history; they are not confirmed bugs or measures of developer expertise.</p>
-      <table>
-        <thead><tr><th>File</th><th>Signal</th><th>Evidence</th></tr></thead>
-        <tbody>{% for risk in result.risks %}<tr><td><code>{{ risk.file }}</code></td><td>{{ risk.reason }}</td><td>{{ risk.evidence }}</td></tr>{% endfor %}</tbody>
-      </table>
-    </section>
-    {% endif %}
-
-    {% if result.developer_areas %}
-    <section class="recent report-section">
-      <p class="eyebrow">WHO WORKED WHERE</p>
-      <h2>Developer contribution areas</h2>
-      <p class="intro">This is derived from changed files in commits. It does not establish ownership or effort.</p>
-      <table>
-        <thead><tr><th>Contributor</th><th>Observed files</th><th>Example areas</th></tr></thead>
-        <tbody>{% for developer in result.developer_areas %}<tr><td>{{ developer.name }}</td><td>{{ developer.file_count }}</td><td><code>{{ developer.files|join(', ') }}</code></td></tr>{% endfor %}</tbody>
-      </table>
-    </section>
-    {% endif %}
-
-    {% if result.frequently_modified_files %}
-    <section class="recent report-section">
-      <p class="eyebrow">CHANGE HOTSPOTS</p>
-      <h2>Frequently modified files</h2>
-      <p class="intro">These are investigation signals, not confirmed defects.</p>
-      <table>
-        <thead><tr><th>File</th><th>Observed changes</th></tr></thead>
-        <tbody>{% for file in result.frequently_modified_files %}<tr><td><code>{{ file.path }}</code></td><td>{{ file.changes }}</td></tr>{% endfor %}</tbody>
-      </table>
-    </section>
-    {% endif %}
-
-    {% if result.recent_commits %}
-    <section class="recent report-section">
-      <p class="eyebrow">CODE EVOLUTION</p>
-      <h2>Recent commits</h2>
-      <table>
-        <thead><tr><th>Commit</th><th>Message</th><th>Author</th><th>Timestamp</th></tr></thead>
-        <tbody>{% for commit in result.recent_commits %}<tr><td><code>{{ commit.hash }}</code></td><td>{{ commit.message }}</td><td>{{ commit.author }}</td><td>{{ commit.timestamp }}</td></tr>{% endfor %}</tbody>
-      </table>
-    </section>
-    {% endif %}
+        {% if result.recent_commits %}
+        <section class="card" id="commits" data-toc="Recent commits" data-reveal>
+          <p class="eyebrow sec-code">CODE EVOLUTION</p>
+          <h2>Recent commits</h2>
+          <div class="table-wrap"><table class="table-stack">
+            <thead><tr><th>Commit</th><th>Message</th><th>Author</th><th>Timestamp</th></tr></thead>
+            <tbody>{% for commit in result.recent_commits %}<tr><td data-label="Commit"><code>{{ commit.hash }}</code></td><td data-label="Message">{{ commit.message }}</td><td data-label="Author">{{ commit.author }}</td><td class="mono" data-label="Timestamp">{{ commit.timestamp }}</td></tr>{% endfor %}</tbody>
+          </table></div>
+        </section>
+        {% endif %}
+      </div>
+    </div>
   </main>
 </div>
 {% endblock %}

@@ -1,3 +1,57 @@
-{% extends 'base.html' %}{% block title %}Code timeline · Code Archaeologist{% endblock %}{% block body %}
-<div class="app-shell"><aside><a class="brand" href="/">⌘ Archaeologist</a><nav><a href="{{ url_for('dashboard.index') }}">Overview</a><a href="{{ url_for('dashboard.new_analysis') }}">New analysis</a><a class="active" href="#">Code timeline</a></nav><form method="post" action="{{ url_for('auth.logout') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="plain-button">Log out</button></form></aside><main class="dashboard"><a class="back-link" href="{{ url_for('dashboard.detail', analysis_id=analysis.id) }}">← Back to {{ analysis.repository_name }}</a><p class="eyebrow">CODE EVOLUTION</p><h1>Commit timeline.</h1><p class="intro">Select a commit to inspect the files it changed and a bounded text diff. This report stores up to 40 recent commits and does not execute repository code.</p>{% if timeline %}<div class="timeline-layout"><section class="timeline-list">{% for commit in timeline %}<a class="timeline-item {% if selected and selected.hash == commit.hash %}selected{% endif %}" href="{{ url_for('dashboard.timeline', analysis_id=analysis.id, commit=commit.hash) }}"><code>{{ commit.hash }}</code><strong>{{ commit.message }}</strong><span>{{ commit.author }} · {{ commit.timestamp }}</span><small>{{ commit.files|length }} changed file(s)</small></a>{% endfor %}</section><section class="timeline-detail recent">{% if selected %}<p class="eyebrow">SELECTED COMMIT</p><h2>{{ selected.message }}</h2><p class="intro"><code>{{ selected.hash }}</code> · {{ selected.author }} · {{ selected.timestamp }}</p><h3>Changed files</h3><table><thead><tr><th>File</th><th>Added</th><th>Deleted</th></tr></thead><tbody>{% for file in selected.files %}<tr><td><code>{{ file.path }}</code></td><td class="added">+{{ file.insertions }}</td><td class="deleted">-{{ file.deletions }}</td></tr>{% else %}<tr><td colspan="3">No file statistics available.</td></tr>{% endfor %}</tbody></table><h3>Diff excerpt</h3><pre class="diff"><code>{{ selected.diff_excerpt }}</code></pre><p class="limitation">Diff excerpts are capped for performance and may omit large or binary-file changes.</p>{% else %}<div class="empty"><div>↙</div><h3>Select a commit</h3><p>Choose an item from the timeline to view its changed files and diff excerpt.</p></div>{% endif %}</section></div>{% else %}<div class="empty"><div>⌛</div><h3>No Git timeline available</h3><p>This source archive did not include usable Git history. Analyze a public GitHub repository to see commits and diffs.</p></div>{% endif %}</main></div>
+{% extends 'base.html' %}
+{% block title %}Code timeline · Code Archaeologist{% endblock %}
+{% block body %}
+<div class="app-shell">
+  {% with nav_extra='Code timeline' %}{% include 'dashboard/_sidebar.html' %}{% endwith %}
+
+  <main id="main" class="dashboard">
+    <a class="back-link" href="{{ url_for('dashboard.detail', analysis_id=analysis.id) }}">← Back to {{ analysis.repository_name }}</a>
+    <p class="eyebrow">CODE EVOLUTION</p>
+    <h1><span class="line"><span class="line-inner">Commit <em class="gradient-text">timeline.</em></span></span></h1>
+    <p class="intro">Select a commit to inspect the files it changed and a bounded text diff. This report stores up to 40 recent commits and does not execute repository code.</p>
+
+    {% if timeline %}
+    <div class="timeline-layout">
+      <section class="timeline-list" aria-label="Commits">
+        {% for commit in timeline %}
+        <a class="timeline-item stagger-in {% if selected and selected.hash == commit.hash %}selected{% endif %}" style="--i: {{ loop.index0 }}"{% if selected and selected.hash == commit.hash %} aria-current="true"{% endif %} href="{{ url_for('dashboard.timeline', analysis_id=analysis.id, commit=commit.hash) }}">
+          <code>{{ commit.hash }}</code>
+          <strong>{{ commit.message }}</strong>
+          <span>{{ commit.author }} · {{ commit.timestamp }}</span>
+          <small>{{ commit.files|length }} changed file(s)</small>
+        </a>
+        {% endfor %}
+      </section>
+
+      <section class="timeline-detail card">
+        {% if selected %}
+        <p class="eyebrow">SELECTED COMMIT</p>
+        <h2>{{ selected.message }}</h2>
+        <p class="intro"><code>{{ selected.hash }}</code> · {{ selected.author }} · {{ selected.timestamp }}</p>
+
+        <h3>Changed files</h3>
+        <div class="table-wrap"><table>
+          <thead><tr><th>File</th><th>Added</th><th>Deleted</th></tr></thead>
+          <tbody>
+            {% for file in selected.files %}<tr><td><code>{{ file.path }}</code></td><td class="added">+{{ file.insertions }}</td><td class="deleted">-{{ file.deletions }}</td></tr>
+            {% else %}<tr><td colspan="3">No file statistics available.</td></tr>{% endfor %}
+          </tbody>
+        </table></div>
+
+        <h3>Diff excerpt</h3>
+        <div class="terminal">
+          <div class="terminal-bar" aria-hidden="true"><i></i><i></i><i></i><span>git show {{ selected.hash }}</span></div>
+          <pre class="diff" data-lines><code>{{ selected.diff_excerpt }}</code></pre>
+        </div>
+        <p class="limitation">Diff excerpts are capped for performance and may omit large or binary-file changes.</p>
+        {% else %}
+        <div class="empty"><div class="empty-icon" aria-hidden="true">↙</div><h3>Select a commit</h3><p>Choose an item from the timeline to view its changed files and diff excerpt.</p></div>
+        {% endif %}
+      </section>
+    </div>
+    {% else %}
+    <div class="empty"><div class="empty-icon" aria-hidden="true">⌛</div><h3>No Git timeline available</h3><p>This source archive did not include usable Git history. Analyze a public GitHub repository to see commits and diffs.</p></div>
+    {% endif %}
+  </main>
+</div>
 {% endblock %}
