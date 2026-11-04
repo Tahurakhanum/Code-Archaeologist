@@ -19,6 +19,15 @@
   const $ = (selector, scope = document) => scope.querySelector(selector);
   const $$ = (selector, scope = document) => [...scope.querySelectorAll(selector)];
 
+  // Smooth motion that does not depend on the screen's refresh rate.
+  // Each frame closes a share of the gap, and that share is worked out from the time
+  // that really passed. So 60 Hz and 165 Hz screens feel the same, and a skipped
+  // frame does not make things slow down and jump. "smoothing" is in milliseconds:
+  // a bigger number means a softer, slower follow.
+  const ease = (current, target, elapsed, smoothing) => target + (current - target) * Math.exp(-elapsed / smoothing);
+  // Time since the last frame, capped so that returning to a paused tab never causes a jump.
+  const frameTime = (now, last) => Math.min(Math.max(now - last, 1), 50);
+
 
   // ---------------------------------------------------------------------------
   // Star field: a lightweight canvas behind everything.
@@ -45,12 +54,14 @@
 
     let width = 0;
     let height = 0;
-    let mouseX = 0;
+    let mouseX = 0;        // the parallax position being drawn
     let mouseY = 0;
+    let targetX = 0;       // where the mouse says the parallax should end up
+    let targetY = 0;
+    let scrollShift = 0;
 
     const draw = (time) => {
       context.clearRect(0, 0, width, height);
-      const scrollShift = animated ? window.scrollY * 0.04 : 0;
       for (const star of stars) {
         const twinkle = animated ? 0.65 + 0.35 * Math.sin(time * 0.001 * star.speed + star.phase) : 1;
         // The modulo wraps stars around the screen edges as they shift.
@@ -77,18 +88,27 @@
 
     if (finePointer) {
       window.addEventListener('pointermove', (event) => {
-        mouseX = event.clientX / width - 0.5;
-        mouseY = event.clientY / height - 0.5;
+        targetX = event.clientX / width - 0.5;
+        targetY = event.clientY / height - 0.5;
       }, { passive: true });
     }
 
-    // About 30 frames per second is plenty for a slow twinkle.
+    // While the stars are moving they are drawn every frame, so they glide. When nothing
+    // is moving, about 30 frames per second is plenty for a slow twinkle.
     let frame = 0;
-    let last = 0;
+    let lastFrame = 0;
+    let lastDraw = 0;
     const loop = (time) => {
       frame = requestAnimationFrame(loop);
-      if (time - last < 33) return;
-      last = time;
+      const elapsed = frameTime(time, lastFrame);
+      lastFrame = time;
+      const moving = Math.abs(targetX - mouseX) + Math.abs(targetY - mouseY) > 0.0002
+        || window.scrollY * 0.04 !== scrollShift;
+      if (!moving && time - lastDraw < 30) return;
+      mouseX = ease(mouseX, targetX, elapsed, 140);
+      mouseY = ease(mouseY, targetY, elapsed, 140);
+      scrollShift = window.scrollY * 0.04;
+      lastDraw = time;
       draw(time);
     };
     frame = requestAnimationFrame(loop);
@@ -117,17 +137,26 @@
     const INTERACTIVE = 'a, button, summary, label, input[type="file"]';
     let mouseX = 0;
     let mouseY = 0;
+    let dotX = 0;
+    let dotY = 0;
     let ringX = 0;
     let ringY = 0;
     let frame = 0;
+    let lastFrame = 0;
 
-    const render = () => {
-      dot.style.transform = `translate3d(${mouseX}px, ${mouseY}px, 0)`;
-      // "Lerp": move 18% of the remaining distance each frame, which gives the easing.
-      ringX += (mouseX - ringX) * 0.18;
-      ringY += (mouseY - ringY) * 0.18;
+    const render = (now) => {
+      const elapsed = frameTime(now, lastFrame);
+      lastFrame = now;
+      // The dot stays almost exactly on the pointer. The tiny smoothing hides the uneven
+      // steps that appear because the mouse and the screen update at different rates.
+      dotX = ease(dotX, mouseX, elapsed, 8);
+      dotY = ease(dotY, mouseY, elapsed, 8);
+      // The ring trails behind with a softer follow.
+      ringX = ease(ringX, mouseX, elapsed, 35);
+      ringY = ease(ringY, mouseY, elapsed, 35);
+      dot.style.transform = `translate3d(${dotX}px, ${dotY}px, 0)`;
       ring.style.transform = `translate3d(${ringX}px, ${ringY}px, 0)`;
-      const settled = Math.abs(mouseX - ringX) < 0.1 && Math.abs(mouseY - ringY) < 0.1;
+      const settled = Math.abs(mouseX - ringX) < 0.05 && Math.abs(mouseY - ringY) < 0.05;
       frame = settled ? 0 : requestAnimationFrame(render);
     };
 
@@ -135,11 +164,16 @@
       mouseX = event.clientX;
       mouseY = event.clientY;
       if (!root.classList.contains('cursor-on')) {
-        ringX = mouseX; // first movement: start the ring on the pointer
+        dotX = mouseX; // first movement: start on the pointer instead of flying in from the corner
+        dotY = mouseY;
+        ringX = mouseX;
         ringY = mouseY;
         root.classList.add('cursor-on');
       }
-      if (!frame) frame = requestAnimationFrame(render);
+      if (!frame) {
+        lastFrame = performance.now();
+        frame = requestAnimationFrame(render);
+      }
     }, { passive: true });
 
     // One listener on the document also covers elements added later.
@@ -152,7 +186,9 @@
       root.classList.toggle('cursor-off-text', onText);
       ring.classList.toggle('is-hover', onControl || Boolean(labelled));
       ring.classList.toggle('is-card', !onControl && !labelled && Boolean(target.closest('.card')));
-      label.textContent = labelled ? labelled.dataset.cursor : '';
+      // Only touch the text when it changes, so moving over a row never forces a layout.
+      const text = labelled ? labelled.dataset.cursor : '';
+      if (label.textContent !== text) label.textContent = text;
     });
 
     window.addEventListener('pointerdown', () => ring.classList.add('is-down'));
@@ -429,17 +465,23 @@
     let x = 0;
     let y = 0;
     let frame = 0;
-    const render = () => {
-      x += (targetX - x) * 0.05;
-      y += (targetY - y) * 0.05;
-      orb.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0)`;
+    let lastFrame = 0;
+    const render = (now) => {
+      const elapsed = frameTime(now, lastFrame);
+      lastFrame = now;
+      x = ease(x, targetX, elapsed, 200);
+      y = ease(y, targetY, elapsed, 200);
+      orb.style.transform = `translate3d(${x.toFixed(2)}px, ${y.toFixed(2)}px, 0)`;
       const settled = Math.abs(targetX - x) < 0.1 && Math.abs(targetY - y) < 0.1;
       frame = settled ? 0 : requestAnimationFrame(render);
     };
     window.addEventListener('pointermove', (event) => {
       targetX = (event.clientX / window.innerWidth - 0.5) * 46;
       targetY = (event.clientY / window.innerHeight - 0.5) * 46;
-      if (!frame) frame = requestAnimationFrame(render);
+      if (!frame) {
+        lastFrame = performance.now();
+        frame = requestAnimationFrame(render);
+      }
     }, { passive: true });
   }
 
