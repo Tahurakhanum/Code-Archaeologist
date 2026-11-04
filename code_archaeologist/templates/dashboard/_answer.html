@@ -1,0 +1,24 @@
+{# Renders one investigation answer. Expects `answer` and `analysis` in scope. #}
+<div class="answer-box">
+  <p class="eyebrow">{{ 'AI-GENERATED, GROUNDED ANSWER' if answer.mode == 'ai' else 'RULE-BASED, GROUNDED ANSWER' }}</p>
+  {% if answer.mode == 'ai' and answer.text %}
+  <div class="answer-text">{{ answer.text }}</div>
+  {% else %}
+    {% if answer.facts %}<h3>Verified facts</h3><ul>{% for fact in answer.facts %}<li>{{ fact }}</li>{% endfor %}</ul>{% endif %}
+    {% if answer.hypotheses %}<h3>Hypotheses</h3><ul>{% for item in answer.hypotheses %}<li>{{ item }}</li>{% endfor %}</ul>{% endif %}
+    {% if answer.text %}<p>{{ answer.text }}</p>{% endif %}
+  {% endif %}
+  {% if answer.evidence %}
+  <h3>Supporting evidence</h3>
+  <ul class="evidence-list">
+    {% for item in answer.evidence %}
+    <li><span class="evidence-kind">{{ item.kind }}</span>
+      {% if item.kind == 'commit' and item.ref %}<a href="{{ url_for('dashboard.timeline', analysis_id=analysis.id, commit=item.ref) }}"><code>{{ item.label }}</code></a>
+      {% elif item.kind == 'code' and item.ref %}<a href="{{ url_for('dashboard.investigate', analysis_id=analysis.id, entity=item.ref) }}">{{ item.label }}</a>
+      {% else %}<strong>{{ item.label }}</strong>{% endif %}
+      <small>{{ item.detail }}</small></li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+  <p class="limitation">{{ answer.limitation }}</p>
+</div>

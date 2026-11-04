@@ -1,0 +1,88 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard · Code Archaeologist{% endblock %}
+{% block body %}
+<div class="app-shell">
+  <aside>
+    <a class="brand" href="/">⌘ Archaeologist</a>
+    <nav>
+      <a class="active" href="{{ url_for('dashboard.index') }}">Overview</a>
+      <a href="{{ url_for('dashboard.new_analysis') }}">New analysis</a>
+    </nav>
+    <form method="post" action="{{ url_for('auth.logout') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="plain-button">Log out</button>
+    </form>
+  </aside>
+
+  <main class="dashboard">
+    <header>
+      <div><p class="eyebrow">YOUR WORKSPACE</p><h1>Welcome back, {{ session.user_name }}.</h1></div>
+      <a class="button" href="{{ url_for('dashboard.new_analysis') }}">Analyze repository <span>→</span></a>
+    </header>
+    {% include 'dashboard/_flashes.html' %}
+
+    <section class="metrics">
+      <article><span>Repositories analyzed</span><strong>{{ stats.repositories }}</strong></article>
+      <article><span>Analysis reports</span><strong>{{ stats.complete }}</strong></article>
+      <article><span>Running / failed</span><strong>{{ stats.running }} / {{ stats.failed }}</strong></article>
+    </section>
+
+    <section class="recent">
+      <div><p class="eyebrow">SAVED ANALYSES</p><h2>Previous analyses</h2></div>
+      {% if stats.total %}
+      <form class="filter-bar" method="get" role="search">
+        <label>Search by name<input type="search" name="q" value="{{ filters.q }}" placeholder="Repository name" maxlength="100"></label>
+        <label>Source
+          <select name="source"><option value="">All sources</option>
+            {% for key, label in sources.items() %}<option value="{{ key }}" {% if filters.source == key %}selected{% endif %}>{{ label }}</option>{% endfor %}
+          </select>
+        </label>
+        <label>Status
+          <select name="status"><option value="">All statuses</option>
+            {% for key, label in statuses.items() %}<option value="{{ key }}" {% if filters.status == key %}selected{% endif %}>{{ label }}</option>{% endfor %}
+          </select>
+        </label>
+        <label>Sort
+          <select name="sort">
+            <option value="newest" {% if filters.sort == 'newest' %}selected{% endif %}>Recently updated</option>
+            <option value="oldest" {% if filters.sort == 'oldest' %}selected{% endif %}>Oldest first</option>
+            <option value="name" {% if filters.sort == 'name' %}selected{% endif %}>Name (A–Z)</option>
+          </select>
+        </label>
+        <button class="button" type="submit">Apply</button>
+        {% if filtering %}<a class="table-link" href="{{ url_for('dashboard.index') }}">Clear filters</a>{% endif %}
+      </form>
+      {% endif %}
+
+      {% if analyses %}
+      <p class="result-count">Showing {{ analyses|length }}{% if more_results %} most relevant{% endif %} of {{ stats.total }} analyses.</p>
+      <table>
+        <thead><tr><th>Repository</th><th>Source</th><th>Status</th><th>Last updated</th><th>Actions</th></tr></thead>
+        <tbody>
+          {% for analysis in analyses %}
+          <tr>
+            <td>{{ analysis.repository_name }}{% if analysis.summary %}<br><small class="muted">{{ analysis.summary }}</small>{% endif %}</td>
+            <td>{{ sources.get(analysis.source_type, analysis.source_type) }}</td>
+            <td><span class="status status-{{ analysis.status }}">{{ statuses.get(analysis.status, analysis.status) }}</span>
+              {% if analysis.status == 'failed' and analysis.error_message %}<br><small class="muted">{{ analysis.error_message }}</small>{% endif %}</td>
+            <td>{{ analysis.updated_at }} UTC</td>
+            <td class="row-actions">
+              {% if analysis.status == 'complete' %}<a class="table-link" href="{{ url_for('dashboard.detail', analysis_id=analysis.id) }}">Open</a>
+              {% else %}<a class="table-link" href="{{ url_for('dashboard.progress', analysis_id=analysis.id) }}">{{ 'View progress' if analysis.status == 'running' else 'Details' }}</a>{% endif %}
+              {% if analysis.status != 'running' %}<a class="table-link danger-link" href="{{ url_for('dashboard.confirm_delete', analysis_id=analysis.id) }}">Delete</a>{% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% elif filtering %}
+      <div class="empty"><div>⌕</div><h3>No analyses match these filters</h3><p>Try a different name or clear the filters to see all {{ stats.total }} analyses.</p>
+        <a class="button" href="{{ url_for('dashboard.index') }}">Clear filters</a></div>
+      {% else %}
+      <div class="empty"><div>⌕</div><h3>No repositories yet</h3><p>Your investigations will appear here after you analyze a repository.</p>
+        <a class="button" href="{{ url_for('dashboard.new_analysis') }}">Analyze your first repository</a></div>
+      {% endif %}
+    </section>
+  </main>
+</div>
+{% endblock %}

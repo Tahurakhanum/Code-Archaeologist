@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+{% block title %}Analyzing {{ analysis.repository_name }} · Code Archaeologist{% endblock %}
+{% block body %}
+<div class="app-shell">
+  <aside>
+    <a class="brand" href="/">⌘ Archaeologist</a>
+    <nav><a href="{{ url_for('dashboard.index') }}">Overview</a><a href="{{ url_for('dashboard.new_analysis') }}">New analysis</a><a class="active" href="#">Analysis progress</a></nav>
+    <form method="post" action="{{ url_for('auth.logout') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="plain-button">Log out</button></form>
+  </aside>
+  <main class="dashboard narrow">
+    <a class="back-link" href="{{ url_for('dashboard.index') }}">← All analyses</a>
+    <p class="eyebrow">{{ analysis.source_type|upper }} ANALYSIS</p>
+    <h1>{{ analysis.repository_name }}</h1>
+    {% include 'dashboard/_flashes.html' %}
+
+    <section class="recent progress-card" id="progressCard"
+             data-status-url="{{ url_for('dashboard.status', analysis_id=analysis.id) }}" data-status="{{ analysis.status }}">
+      {% if analysis.status == 'failed' %}
+        <p class="eyebrow">ANALYSIS FAILED</p>
+        <h2>The analysis could not be completed</h2>
+        <p class="flash error" id="progressError">{{ analysis.error_message or 'The analysis failed.' }}</p>
+        <p class="intro">No repository code was executed. You can try again, or delete this entry.</p>
+        <p><a class="button" href="{{ url_for('dashboard.new_analysis') }}">Try again</a>
+           <a class="table-link danger-link" href="{{ url_for('dashboard.confirm_delete', analysis_id=analysis.id) }}">Delete this entry</a></p>
+      {% else %}
+        <p class="eyebrow">IN PROGRESS</p>
+        <h2>Analyzing the repository…</h2>
+        <div class="progress-bar" role="progressbar" aria-label="Analysis in progress"><span></span></div>
+        <p class="progress-message" id="progressMessage" aria-live="polite">{{ analysis.progress_message or 'Starting…' }}</p>
+        <p class="intro">This page updates automatically and opens the results when they are ready. Large repositories can take a minute.</p>
+        <noscript><p class="intro">JavaScript is off: <a href="">refresh this page</a> to check progress.</p></noscript>
+      {% endif %}
+    </section>
+  </main>
+</div>
+{% endblock %}
+{% block scripts %}
+{% if analysis.status == 'running' %}
+<script>
+// Poll the status endpoint every 1.5 seconds; open the results when the job finishes.
+(() => {
+  const card = document.getElementById('progressCard');
+  const message = document.getElementById('progressMessage');
+  const check = async () => {
+    try {
+      const response = await fetch(card.dataset.statusUrl, { headers: { Accept: 'application/json' } });
+      if (!response.ok) throw new Error('status ' + response.status);
+      const data = await response.json();
+      if (data.status === 'complete') { window.location.href = data.detail_url; return; }
+      if (data.status === 'failed') { window.location.reload(); return; }
+      if (data.progress) message.textContent = data.progress;
+    } catch (error) {
+      message.textContent = 'Waiting for the server… (keep the server window open)';
+    }
+    setTimeout(check, 1500);
+  };
+  setTimeout(check, 1000);
+})();
+</script>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,13 @@
+.venv/
+__pycache__/
+*.py[cod]
+instance/
+.env
+uploads/
+repositories/
+*.sqlite3
+.pytest_cache/
+
+# Scratch files, backups, and generated outputs (not part of the app)
+work/
+outputs/

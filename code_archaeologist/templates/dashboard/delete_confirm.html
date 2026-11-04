@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% block title %}Delete {{ analysis.repository_name }} · Code Archaeologist{% endblock %}
+{% block body %}
+<div class="app-shell">
+  <aside>
+    <a class="brand" href="/">⌘ Archaeologist</a>
+    <nav><a href="{{ url_for('dashboard.index') }}">Overview</a><a href="{{ url_for('dashboard.new_analysis') }}">New analysis</a></nav>
+    <form method="post" action="{{ url_for('auth.logout') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="plain-button">Log out</button></form>
+  </aside>
+  <main class="dashboard narrow">
+    <a class="back-link" href="{{ url_for('dashboard.index') }}">← Cancel and go back</a>
+    <p class="eyebrow">DELETE SAVED ANALYSIS</p>
+    <h1>Delete “{{ analysis.repository_name }}”?</h1>
+    <section class="recent delete-card">
+      {% if analysis.status == 'running' %}
+        <p class="flash warning">This analysis is still running. You can delete it after it finishes.</p>
+        <a class="button" href="{{ url_for('dashboard.progress', analysis_id=analysis.id) }}">View progress</a>
+      {% else %}
+        <p>This permanently removes:</p>
+        <ul>
+          <li>The saved analysis results (charts, risks, contributors, timeline, and detected code)</li>
+          <li>{{ note_count }} saved investigation answer(s)</li>
+        </ul>
+        <p class="intro">Repository source code is not stored after analysis, so there is nothing else to remove. You can analyze the repository again at any time. This cannot be undone.</p>
+        <p class="intro">Source: {{ analysis.source_url or (analysis.source_type|upper ~ ' upload') }} · created {{ analysis.created_at }} UTC</p>
+        <form method="post" action="{{ url_for('dashboard.delete', analysis_id=analysis.id) }}" class="delete-actions">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="danger-button" type="submit">Yes, delete this analysis</button>
+          <a class="table-link" href="{{ url_for('dashboard.detail', analysis_id=analysis.id) if analysis.status == 'complete' else url_for('dashboard.index') }}">Cancel</a>
+        </form>
+      {% endif %}
+    </section>
+  </main>
+</div>
+{% endblock %}
