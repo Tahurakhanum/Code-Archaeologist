@@ -499,35 +499,48 @@
     const nodes = $$('.feature-node', scope);
     if (nodes.length < 2) return;
 
-    let top = 0;      // the scope's distance from the top of the document
-    let points = [];  // node centres, relative to the scope
+    let top = 0;       // the scope's distance from the top of the document
+    let points = [];   // node centres and feature bottoms, relative to the scope
+    let heights = [];  // how far down the page the line is at 300 evenly spaced steps
 
-    // Measure the nodes and draw a smooth curve through them. pathLength="1" in the
-    // HTML means the dash offset below can be written as a simple 0..1 fraction.
+    // Measure the nodes and draw the path. From each node the line runs straight down
+    // the empty gutter beside its feature, and only curves across in the gap below it,
+    // so it never passes through text. pathLength="1" in the HTML means the dash offset
+    // below can be written as a simple 0..1 fraction.
     const layout = () => {
       const rect = scope.getBoundingClientRect();
       top = rect.top + window.scrollY;
       points = nodes.map((node) => {
         const box = node.getBoundingClientRect();
-        return { x: box.left - rect.left + box.width / 2, y: box.top - rect.top + box.height / 2 };
+        return {
+          x: box.left - rect.left + box.width / 2,
+          y: box.top - rect.top + box.height / 2,
+          bottom: node.parentElement.getBoundingClientRect().bottom - rect.top,
+        };
       });
       svg.setAttribute('viewBox', `0 0 ${rect.width} ${rect.height}`);
       let path = `M ${points[0].x} ${points[0].y}`;
       for (let i = 1; i < points.length; i += 1) {
-        const middle = (points[i - 1].y + points[i].y) / 2;
-        path += ` C ${points[i - 1].x} ${middle}, ${points[i].x} ${middle}, ${points[i].x} ${points[i].y}`;
+        const from = points[i - 1];
+        const to = points[i];
+        const middle = (from.bottom + to.y) / 2;
+        path += ` L ${from.x} ${from.bottom} C ${from.x} ${middle}, ${to.x} ${middle}, ${to.x} ${to.y}`;
       }
       line.setAttribute('d', path);
       base.setAttribute('d', path);
+
+      // The line moves sideways in the gaps, so its length does not grow evenly with
+      // its height. This table lets update() find how much to draw for a given height.
+      const length = line.getTotalLength();
+      heights = Array.from({ length: 301 }, (_, step) => line.getPointAtLength((length * step) / 300).y);
       update();
     };
 
     const update = () => {
       // The pen tip sits 65% of the way down the screen.
       const penY = reduceMotion ? Infinity : window.scrollY + window.innerHeight * 0.65 - top;
-      const first = points[0].y;
-      const lastY = points[points.length - 1].y;
-      const progress = Math.max(0, Math.min(1, (penY - first) / (lastY - first)));
+      const step = heights.findIndex((height) => height >= penY);
+      const progress = step === -1 ? 1 : step / 300;
       line.style.strokeDashoffset = String(1 - progress);
       nodes.forEach((node, i) => node.classList.toggle('is-lit', penY >= points[i].y));
     };

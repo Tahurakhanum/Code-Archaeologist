@@ -305,6 +305,11 @@ small { font-size: .82em; }
   margin-bottom: 30px;
 }
 .page-header > div:first-child { min-width: min(100%, 320px); flex: 1 1 320px; }
+/* Stops a long name from leaving one short word, like "G.", alone on the last line */
+.page-header h1 { text-wrap: pretty; }
+/* The welcome heading shares its row with a button, so it is a little smaller. That keeps
+   "Welcome back," together on one line, even with a long name. */
+.page-header:not(.page-header-stacked) h1 { font-size: clamp(1.9rem, 3.6vw, 3rem); }
 
 /* Pages with several buttons give them a row of their own below the title */
 .page-header-stacked > div { flex: 1 1 100%; }
@@ -1024,7 +1029,11 @@ html.js .toast-stack .flash.is-leaving { animation: toast-out .3s ease-in both; 
 /* Capabilities: draggable horizontal strip ------------------------------------ */
 .capabilities { padding-bottom: clamp(70px, 10vw, 130px); }
 .drag-strip {
+  --edge: clamp(16px, 4vw, 48px); /* same as the side padding, so cards at rest are not dimmed */
   display: flex;
+  /* Cards fade out at the edges instead of being cut off in a hard line */
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 var(--edge), #000 calc(100% - var(--edge)), transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 var(--edge), #000 calc(100% - var(--edge)), transparent);
   gap: 14px;
   overflow-x: auto;
   /* The left padding lines the first card up with the .wrap content above it */
@@ -1068,7 +1077,7 @@ html.js .toast-stack .flash.is-leaving { animation: toast-out .3s ease-in both; 
 @media (min-width: 1181px) {
   .page-landing .wrap { padding-right: 214px; }
   .page-landing .site-header { padding-right: clamp(16px, 4vw, 48px); }
-  .drag-strip { margin-right: 200px; padding-right: 24px; } /* stops short of the index */
+  .drag-strip { margin-right: 200px; } /* stops short of the index */
 }
 @media (max-width: 1180px) {
   .page-index-fixed { display: none; }

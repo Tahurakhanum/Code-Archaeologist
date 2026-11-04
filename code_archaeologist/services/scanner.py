@@ -81,7 +81,7 @@ def _read_git_history(root: Path) -> dict:
         "developer_areas": [{"name": name, "files": sorted(files)[:12], "file_count": len(files)} for name, files in sorted(contributor_files.items(), key=lambda item: len(item[1]), reverse=True)[:10]],
         "recent_commits": recent,
         "timeline": timeline,
-        "history_note": "Git history analyzed from up to 500 most recent commits.",
+        "history_note": "Git history analyzed from the most recent commits available.",
     }
 
 
